@@ -2,6 +2,7 @@ import { useState, useEffect } from "react";
 import Persons from "./components/Persons.jsx";
 import PersonForm from "./components/PersonForm.jsx";
 import Filter from "./components/Filter.jsx";
+import Message from "./components/Message.jsx";
 import personService from "./services/persons.js"
 
 const App = () => {
@@ -9,6 +10,8 @@ const App = () => {
   const [newName, setNewName] = useState("");
   const [newNumber, setNewNumber] = useState("");
   const [search, setSearch] = useState("");
+  const [notification, setNotification] = useState(null)
+  const [errorMessage, setErrorMessage] = useState(null)
 
   const loadPersons = () => {
     personService
@@ -45,6 +48,15 @@ const App = () => {
             setNewName("");
             setNewNumber("");
           })
+          .catch(error => {
+            setErrorMessage(
+              `Information of ${personObject.name} has already been removed from the server`
+            )
+            setTimeout(() => {
+              setErrorMessage(null)
+            }, 5000)
+            setPersons(persons.filter((p) => p.id !== duplicatePerson.id))
+          })
       }
       return;
     }
@@ -55,6 +67,12 @@ const App = () => {
         setPersons(persons.concat(returnedPerson))
         setNewName("");
         setNewNumber("");
+        setNotification(
+          `Added ${returnedPerson.name}`
+        )
+        setTimeout(() => {
+          setNotification(null)
+        }, 5000)
       })
   };
 
@@ -88,6 +106,8 @@ const App = () => {
   return (
     <div>
       <h2>Phonebook</h2>
+      <Message message={notification} type="success" />
+      <Message message={errorMessage} type="error" />
       <Filter onSearchChange={handleSearchChange} />
       <h2>add a new</h2>
       <PersonForm
