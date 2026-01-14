@@ -1,5 +1,5 @@
 {
-  "name": "backend",
+  "name": "backend-notes",
   "version": "0.0.1",
   "description": "Fullstack open course part 3",
   "main": "index.js",
@@ -11,6 +11,7 @@
   "author": "Tynan Schweitzer",
   "license": "MIT",
   "dependencies": {
+    "cors": "^2.8.5",
     "express": "^5.2.1"
   }
 }
