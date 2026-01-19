@@ -5,11 +5,19 @@ const Person = require('./models/person')
 
 const app = express()
 
-let persons = []
-
 morgan.token('body', (req) =>
   JSON.stringify(req.body)
 )
+
+const errorHandler = (error, request, response, next) => {
+  console.error(error.message)
+
+  if (error.name === 'CastError') {
+    return response.status(400).send({ error: 'malformatted id' })
+  }
+
+  next(error)
+}
 
 app.use(express.static('dist'))
 app.use(express.json())
@@ -22,8 +30,10 @@ app.get('/', (request, response) => {
 })
 
 app.get('/info', (request, response) => {
-  const info = `Phonebook has info for ${persons.length} people`
-  response.send(`${info}<br>${Date()}`)
+  Person.find({}).then(persons => {
+    const info = `Phonebook has info for ${persons.length} people`
+    response.send(`${info}<br>${Date()}`)
+  })
 })
 
 app.get(url, (request, response) => {
@@ -32,17 +42,24 @@ app.get(url, (request, response) => {
   })
 })
 
-app.get(url + '/:id', (request, response) => {
-  Person.findById(request.params.id).then(person => {
-    response.json(person)
-  })
+app.get(url + '/:id', (request, response, next) => {
+  Person.findById(request.params.id)
+    .then(person => {
+      if (person) {
+        response.json(person)
+      } else {
+        response.status(404).end()
+      }
+    })
+    .catch(error => next(error))
 })
 
-app.delete(url + '/:id', (request, response) => {
-  const id = request.params.id
-  persons = persons.filter(person => person.id !== id)
-
-  response.status(204).end()
+app.delete(url + '/:id', (request, response, next) => {
+  Person.findByIdAndDelete(request.params.id)
+    .then(result => {
+      response.status(204).end()
+    })
+    .catch(error => next(error))
 })
 
 app.post(url, (request, response) => {
@@ -56,18 +73,39 @@ app.post(url, (request, response) => {
     return response.status(400).json({ error: 'number missing' })
   }
 
-  if (persons.find(person => person.name === body.name)) {
-    return response.status(400).json({ error: 'name must be unique' })
-  }
+  Person.findOne({ name: body.name })
+    .then(existingPerson => {
+      if (existingPerson) {
+        return response.status(400).json({ error: 'name must be unique' })
+      }
 
-  const person = new Person({
-    name: body.name,
-    number: body.number,
-  })
+      const person = new Person({
+        name: body.name,
+        number: body.number,
+      })
+      person.save().then(savedPerson => {
+        response.json(savedPerson)
+      })
+    })
+})
 
-  person.save().then(savedPerson => {
-    response.json(savedPerson)
-  })
+app.put(url + '/:id', (request, response, next) => {
+  const { name, number } = request.body
+
+  Person.findById(request.params.id)
+    .then(person => {
+      if (!person) {
+        return response.status(404).end()
+      }
+
+      person.name = name
+      person.number = number
+
+      return person.save().then((updatedPerson) => {
+        response.json(updatedPerson)
+      })
+    })
+    .catch(error => next(error))
 })
 
 const unknownEndpoint = (request, response) => {
@@ -75,6 +113,7 @@ const unknownEndpoint = (request, response) => {
 }
 
 app.use(unknownEndpoint)
+app.use(errorHandler)
 
 const PORT = process.env.PORT
 app.listen(PORT, () => {
