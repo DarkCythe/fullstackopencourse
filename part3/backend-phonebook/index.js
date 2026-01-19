@@ -9,7 +9,7 @@ morgan.token('body', (req) =>
   JSON.stringify(req.body)
 )
 
-const errorHandler = (error, request, response, next) => {
+const errorHandler = (error, response, next) => {
   console.error(error.message)
 
   if (error.name === 'CastError') {
@@ -27,18 +27,18 @@ app.use(morgan(':method :url :status :res[content-length] - :response-time ms :b
 
 let url = '/api/persons'
 
-app.get('/', (request, response) => {
+app.get('/', (response) => {
   response.send('<h1>Hello World!</h1>')
 })
 
-app.get('/info', (request, response) => {
+app.get('/info', (response) => {
   Person.find({}).then(persons => {
     const info = `Phonebook has info for ${persons.length} people`
     response.send(`${info}<br>${Date()}`)
   })
 })
 
-app.get(url, (request, response) => {
+app.get(url, (response) => {
   Person.find({}).then(persons => {
     response.json(persons)
   })
@@ -58,9 +58,7 @@ app.get(url + '/:id', (request, response, next) => {
 
 app.delete(url + '/:id', (request, response, next) => {
   Person.findByIdAndDelete(request.params.id)
-    .then(result => {
-      response.status(204).end()
-    })
+    .then(response.status(204).end())
     .catch(error => next(error))
 })
 
@@ -111,7 +109,7 @@ app.put(url + '/:id', (request, response, next) => {
     .catch(error => next(error))
 })
 
-const unknownEndpoint = (request, response) => {
+const unknownEndpoint = (response) => {
   response.status(404).send({ error: 'unknown endpoint' })
 }
 

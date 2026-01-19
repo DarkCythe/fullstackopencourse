@@ -8,7 +8,7 @@ const url = process.env.MONGODB_URI
 console.log('connecting to', url)
 mongoose.connect(url, { family: 4 })
 
-  .then(result => {
+  .then(() => {
     console.log('connected to MongoDB')
   })
   .catch(error => {
@@ -25,7 +25,7 @@ const noteSchema = new mongoose.Schema({
 })
 
 noteSchema.set('toJSON', {
-  transform: (document, returnedObject) => {
+  transform: (returnedObject) => {
     returnedObject.id = returnedObject._id.toString()
     delete returnedObject._id
     delete returnedObject.__v
